@@ -1,0 +1,5 @@
+name: local
+color: "#346AB2"
+variables:
+  - name: localhost
+    value: http://localhost:3000/

@@ -1,0 +1,23 @@
+info:
+  name: Add a task
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{localhost}}tasks"
+  body:
+    type: json
+    data: |-
+      {
+        "title" : "Acheter du lait",
+        "completed" : false,
+        "createdAt": "2026-04-07T12:00:00Z"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

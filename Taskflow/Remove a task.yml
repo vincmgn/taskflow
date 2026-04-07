@@ -1,0 +1,19 @@
+info:
+  name: Remove a task
+  type: http
+  seq: 7
+
+http:
+  method: DELETE
+  url: "{{localhost}}/tasks/:id"
+  params:
+    - name: id
+      value: psXlm3jbZ49o59ueBCN2
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
