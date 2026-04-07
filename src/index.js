@@ -47,9 +47,16 @@ app.use(limiter);
 // Body parser with size limits
 app.use(express.json({ limit: '10kb' }));
 
+// Validation helpers
+const isValidISODate = (value) =>
+  typeof value === 'string' && !isNaN(Date.parse(value));
+
+const isValidHexColor = (value) =>
+  typeof value === 'string' && /^#([0-9A-Fa-f]{6})$/.test(value);
+
 // Input validation middleware
 const validateTaskInput = (req, res, next) => {
-  const { title } = req.body;
+  const { title, dueDate, color } = req.body;
 
   if (!title || typeof title !== 'string') {
     return res.status(400).json({ error: 'Title is required and must be a string' });
@@ -59,6 +66,26 @@ const validateTaskInput = (req, res, next) => {
     return res.status(400).json({ error: 'Title must be between 1 and 500 characters' });
   }
 
+  const { description } = req.body;
+
+  if (description !== undefined && description !== null) {
+    if (typeof description !== 'string') {
+      return res.status(400).json({ error: 'description must be a string' });
+    }
+    if (description.length > 2000) {
+      return res.status(400).json({ error: 'description must be 2000 characters or less' });
+    }
+    req.body.description = description.trim();
+  }
+
+  if (dueDate !== undefined && dueDate !== null && !isValidISODate(dueDate)) {
+    return res.status(400).json({ error: 'dueDate must be a valid ISO 8601 date string' });
+  }
+
+  if (color !== undefined && color !== null && !isValidHexColor(color)) {
+    return res.status(400).json({ error: 'color must be a valid hex color string (e.g. #FF5733)' });
+  }
+
   // Sanitize title
   req.body.title = title.trim();
   next();
@@ -66,15 +93,27 @@ const validateTaskInput = (req, res, next) => {
 
 // Sanitize update data
 const sanitizeUpdateData = (updates) => {
-  const allowedFields = ['title', 'completed'];
+  const allowedFields = ['title', 'description', 'completed', 'dueDate', 'color'];
   const sanitized = {};
 
   for (const key of Object.keys(updates)) {
     if (allowedFields.includes(key)) {
       if (key === 'title' && typeof updates[key] === 'string') {
         sanitized[key] = updates[key].trim().substring(0, 500);
+      } else if (key === 'description') {
+        if (updates[key] === null || (typeof updates[key] === 'string' && updates[key].length <= 2000)) {
+          sanitized[key] = updates[key] === null ? null : updates[key].trim();
+        }
       } else if (key === 'completed' && typeof updates[key] === 'boolean') {
         sanitized[key] = updates[key];
+      } else if (key === 'dueDate') {
+        if (updates[key] === null || isValidISODate(updates[key])) {
+          sanitized[key] = updates[key];
+        }
+      } else if (key === 'color') {
+        if (updates[key] === null || isValidHexColor(updates[key])) {
+          sanitized[key] = updates[key];
+        }
       }
     }
   }
@@ -87,8 +126,12 @@ const formatTaskData = (doc) => {
   return {
     id: doc.id,
     title: data.title,
+    description: data.description ?? null,
     completed: data.completed,
-    createdAt: data.createdAt?.toDate?.() ? data.createdAt.toDate().toISOString() : data.createdAt
+    createdAt: data.createdAt?.toDate?.() ? data.createdAt.toDate().toISOString() : data.createdAt,
+    updatedAt: data.updatedAt?.toDate?.() ? data.updatedAt.toDate().toISOString() : (data.updatedAt ?? null),
+    dueDate: data.dueDate ?? null,
+    color: data.color ?? null
   };
 };
 
@@ -124,14 +167,18 @@ app.get('/tasks', async (req, res) => {
 
 app.post('/tasks', validateTaskInput, async (req, res) => {
   try {
-    const { title } = req.body;
+    const { title, description, dueDate, color } = req.body;
 
     const taskRef = db.collection('tasks').doc();
     const task = {
       id: taskRef.id,
       title,
       completed: false,
-      createdAt: FieldValue.serverTimestamp()
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      ...(description !== undefined && { description }),
+      ...(dueDate !== undefined && { dueDate }),
+      ...(color !== undefined && { color })
     };
 
     await taskRef.set(task);
@@ -166,7 +213,7 @@ app.patch('/tasks/:id', async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    await taskRef.update(sanitizedUpdates);
+    await taskRef.update({ ...sanitizedUpdates, updatedAt: FieldValue.serverTimestamp() });
 
     const updatedTask = await taskRef.get();
     res.json(formatTaskData(updatedTask));

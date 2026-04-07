@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(npm test:*)",
+      "Bash(git -C /d/taskflow status)",
+      "Bash(git -C /d/taskflow log --oneline -3)",
+      "Bash(git -C /d/manage-taskflow status)",
+      "Bash(git -C /d/manage-taskflow log --oneline -3)"
+    ]
+  }
+}

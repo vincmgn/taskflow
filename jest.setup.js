@@ -22,8 +22,12 @@ jest.unstable_mockModule('firebase-admin', () => {
                 id: '1',
                 data: () => ({
                   title: 'Mock Task',
+                  description: 'Mock description',
                   completed: false,
                   createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  dueDate: '2026-01-01T00:00:00.000Z',
+                  color: '#007AFF',
                 }),
               },
             ],
@@ -32,8 +36,12 @@ jest.unstable_mockModule('firebase-admin', () => {
                 id: '1',
                 data: () => ({
                   title: 'Mock Task',
+                  description: 'Mock description',
                   completed: false,
                   createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  dueDate: '2026-01-01T00:00:00.000Z',
+                  color: '#007AFF',
                 }),
               });
             },
@@ -43,8 +51,12 @@ jest.unstable_mockModule('firebase-admin', () => {
           const newId = id || `mocked-id-123`;
           let taskData = {
             title: 'Mock Task',
+            description: 'Mock description',
             completed: false,
             createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            dueDate: '2026-01-01T00:00:00.000Z',
+            color: '#007AFF',
           };
           return {
             id: newId,
@@ -56,7 +68,7 @@ jest.unstable_mockModule('firebase-admin', () => {
                   id === '1' || id === '123' || !id ? taskData : null,
               })
             ),
-            set: jest.fn(() => Promise.resolve()),
+            set: jest.fn((data) => { taskData = { ...taskData, ...data }; return Promise.resolve(); }),
             update: jest.fn((updates) => {
               taskData = { ...taskData, ...updates };
               return Promise.resolve();
